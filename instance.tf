@@ -10,7 +10,6 @@ resource "aws_subnet" "dev_subnet_pub1" {
       }"
 }
 
-
 resource "aws_internet_gateway" "dev-gw" {
       vpc_id = "${aws_vpc.dev-vpc.id}"
       tags =  {
@@ -100,6 +99,17 @@ resource "aws_key_pair" "dev_pub" {
   public_key = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQDjDcOSrVbS5QZz/z42Pw05yxWV/3eJLZrQ9FNMEoia6BIuPWLQ+Osc51CSmoqlhDzyz4K0qKaCcMb9CVvstoIQ2hgd7jfpwz/kYmkliRPpEtc9MijbaGjDbqgcOySh0okLathZZ56BNXkx+Yzs6DGDuL4AfrvnZoLk6RQ9Jprw334lzn9EJuVZX8KTMMbbd+U90aXOF2JL0mkow4uQ0XGfH06m5DUBV6Pibrfq2DrzcNLAUH3jEuWPgE4Abxaucbw5GIezwjN3hMY4ZSPbtIP0ju4T2ytxcrI9RQZaJvDMwZUgHcF06Efmka7u0PI8jpQiDYR2gV8KnKpIY0+GKb3P53KEI1MhVfSM1UcX65guhAf2CuB+o++rdIkbwJVdx4SDTXHSPy2Sa66xA22uudIwj41ybWaav6JWAQzyTWC6Wo3djxRz/bzIkp87Ji/kp26keoVktgeRZ5y966NqSoES04oFxHWXWGH12me6tWHjMXCd7ZGpVwyiu0F7pKyGzrM= oyj@DESKTOP-JM7824V"
 }
 
+#Db connect
+data "aws_db_instance" "database" {
+   db_instance_identifier = "dev-rds-mysl"
+   depends_on = [
+      aws_db_instance.default, 
+   ]
+}
+
+output "db_instance_addr" {
+   value = "${aws_db_instance.default.endpoint}"
+}
 
 resource "aws_instance" "dev_pub_ami" {
 	ami = "${lookup(var.aws_dev_pub_ami, var.aws_region)}"
@@ -114,3 +124,4 @@ resource "aws_instance" "dev_pub_ami" {
 		Name = "dev_pub_instance"
 	}
 }
+
