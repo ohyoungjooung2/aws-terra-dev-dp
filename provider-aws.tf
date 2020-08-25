@@ -1,6 +1,15 @@
+terraform {
+  required_providers {
+    aws = {
+      source = "hashicorp/aws"
+    }
+
+  }
+
+}
 provider "aws" {
-  version = "~> 2.0"
+  version    = "~> 2.0"
   access_key = ""
   secret_key = ""
-  region  = "ap-northeast-2"
+  region     = "ap-northeast-2"
 }
