@@ -167,15 +167,20 @@ resource "aws_instance" "dev_pub_ami" {
   provisioner "remote-exec" {
     inline = [
       "sudo yum -y update",
+      "sudo yum -y install java-1.8.0-openjdk.x86_64",
       "sudo yum -y install mysql",
       "sudo yum -y install httpd",
       #"sudo yum -y install tomcat8 tomcat8-webapps.noarch",
-      "sudo yum -y install mysql-server",
-      "sudo service  mysqld start",
+      "sudo yum -y install mariadb-server",
+      "sudo systemctl enable mariadb",
+      "sudo systemctl start mariadb",
       "chmod +x /tmp/mysql_auth.sh",
       "bash /tmp/mysql_auth.sh",
-      "sudo yum -y install java-1.8.0-openjdk.x86_64",
-      "java -jar /home/ec2-user/vue-spboot-mysl-0.0.1-SNAPSHOT.jar",
+      "sudo chmod 700 /home/ec2-user/vue-spboot-mysl-0.0.1-SNAPSHOT.jar",
+      "sudo ln -s /home/ec2-user/vue-spboot-mysl-0.0.1-SNAPSHOT.jar /etc/init.d/vsm",
+      "sudo chkconfig --add vsm",
+      "sudo chkconfig --level 234 vsm on",
+      "sudo service vsm start",
     ]
 
   }
@@ -183,4 +188,9 @@ resource "aws_instance" "dev_pub_ami" {
   tags = {
     Name = "dev_pub_instance"
   }
+   
+}
+
+output "instance_ip_addr" {
+  value = aws_instance.dev_pub_ami.public_ip
 }

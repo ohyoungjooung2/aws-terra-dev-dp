@@ -8,6 +8,7 @@ variable "aws_dev_pub_ami" {
   default = {
     #ap-northeast-2 = "ami-05a4cce8936a89f06"
     #ap-northeast-2 = "ami-0d777f54156eae7d9"
-    ap-northeast-2 = "ami-08ffef921295fd55c"
+    #ap-northeast-2 = "ami-08ffef921295fd55c"
+    ap-northeast-2 = "ami-0bd7691bf6470fe9c"
   }
 }
