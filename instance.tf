@@ -30,80 +30,6 @@ resource "aws_route_table_association" "rt-association1" {
   route_table_id = "${aws_route_table.dev-pub-rt.id}"
 }
 
-#Myip check to add sg group
-data "http" "myip" {
-  #url = "http://checkip.amazonaws.com"
-  url = "http://ipv4.icanhazip.com"
-   request_headers = {
-    Accept = "application/json"
-    #Accept = "Content-Type: text/plain; charset=utf-8"
-  }
-}
-
-resource "aws_security_group" "dev_pub_sg" {
-  name        = "terraform_dev_pub_sg"
-  description = "Security group for all worker nodes in pub 1 sbnet"
-  vpc_id      = "${aws_vpc.dev-vpc.id}"
-  ingress {
-    from_port = 22
-    to_port   = 22
-    protocol  = "tcp"
-    cidr_blocks = ["${chomp(data.http.myip.body)}/32"]
-    self        = true
-  }
-  ingress {
-    from_port   = 8080
-    to_port     = 8080
-    protocol    = "tcp"
-    cidr_blocks = ["${chomp(data.http.myip.body)}/32"]
-    self        = true
-  }
-  ingress {
-    from_port = 80
-    to_port   = 80
-    protocol  = "tcp"
-    cidr_blocks = ["${chomp(data.http.myip.body)}/32"]
-    self        = true
-  }
-  egress {
-    from_port   = 80
-    to_port     = 80
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-    self        = true
-  }
-
-
-  egress {
-    from_port   = 443
-    to_port     = 443
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-    self        = true
-  }
-
-  #To db rds subnet
-  egress {
-    from_port   = 3306
-    to_port     = 3306
-    protocol    = "tcp"
-    #cidr_blocks = ["10.3.2.0/24", "10.3.3.0/24"]
-    self        = true
-  }
-  #Mysql self allow(only)
-  egress {
-    from_port   = 3306
-    to_port     = 3306
-    protocol    = "tcp"
-    self        = true
-  }
-
-  tags = "${
-    map(
-      "Name", "terraform-dev-pub-node",
-    )
-  }"
-}
 
 #For rds(product or stage)
 #resource "aws_security_group_rule" "dev_pub_sg_gr" {
@@ -147,6 +73,22 @@ resource "aws_instance" "dev_pub_ami" {
   source_dest_check           = false
   #user_data = "${file("nat-user-data.yml")}"
 
+ provisioner "local-exec" {
+    #CrossOrigin need to be changed in aws ip(private or public,depends on environment)
+    #command = "echo ${aws_instance.dev_pub_ami.public_ip} >> private_ips.txt"
+    command = "sed -i '25 s/^.*$/@CrossOrigin(origins = \"http:\\/\\/${aws_instance.dev_pub_ami.public_ip}\")/g' ./vue-spboot-mysl/src/main/java/com/spvue/ex/controller/CustomerController.java; cd ./vue-spboot-mysl; ./mvnw clean;./mvnw install"
+  }
+
+ provisioner "local-exec" {
+   command = "sed -i '6 s/^.*$/baseURL: \"http:\\/\\/${aws_instance.dev_pub_ami.public_ip}:8080\\/api\",/g' ./vue-spboot-mysl/frontend/src/http-common.js; cd ./vue-spboot-mysl/frontend/; rm -f ./dist.tar.xz; npm run build; tar cvJf dist.tar.xz dist"
+   #baseURL: "http://localhost:8080/api", vue-spboot-mysl/frontend/src/http-common.js
+ }
+
+  provisioner "file" {
+    source = "./vue-spboot-mysl/frontend/dist.tar.xz"
+    destination = "/home/ec2-user/dist.tar.xz"
+  }
+
   connection {
     type = "ssh"
     user = "ec2-user"
@@ -160,7 +102,12 @@ resource "aws_instance" "dev_pub_ami" {
   }
 
   provisioner "file" {
-    source = "vue-spboot-mysl-0.0.1-SNAPSHOT.jar"
+    source = "amzon-node-inst.sh"
+    destination = "/tmp/amzon-node-inst.sh"
+  }
+
+  provisioner "file" {
+    source = "./vue-spboot-mysl/target/vue-spboot-mysl-0.0.1-SNAPSHOT.jar"
     destination = "/home/ec2-user/vue-spboot-mysl-0.0.1-SNAPSHOT.jar"
   }
 
@@ -168,19 +115,23 @@ resource "aws_instance" "dev_pub_ami" {
     inline = [
       "sudo yum -y update",
       "sudo yum -y install java-1.8.0-openjdk.x86_64",
-      "sudo yum -y install mysql",
+      "bash /tmp/amzon-node-inst.sh",
       "sudo yum -y install httpd",
+      "cd /home/ec2-user;tar xvJf dist.tar.xz;sudo cp -rfpv dist/* /var/www/html/",
+      "sudo yum -y install mysql",
       #"sudo yum -y install tomcat8 tomcat8-webapps.noarch",
       "sudo yum -y install mariadb-server",
       "sudo systemctl enable mariadb",
       "sudo systemctl start mariadb",
       "chmod +x /tmp/mysql_auth.sh",
       "bash /tmp/mysql_auth.sh",
+      #For production service but dev also need?
       "sudo chmod 700 /home/ec2-user/vue-spboot-mysl-0.0.1-SNAPSHOT.jar",
       "sudo ln -s /home/ec2-user/vue-spboot-mysl-0.0.1-SNAPSHOT.jar /etc/init.d/vsm",
       "sudo chkconfig --add vsm",
       "sudo chkconfig --level 234 vsm on",
       "sudo service vsm start",
+      "sudo service httpd start",
     ]
 
   }
@@ -191,6 +142,8 @@ resource "aws_instance" "dev_pub_ami" {
    
 }
 
+#For test we need public ip. Sometimes just vpn provided private ip? or if we can connect with private ip
 output "instance_ip_addr" {
   value = aws_instance.dev_pub_ami.public_ip
+  #value = aws_instance.dev_pub_ami.private_ip
 }
