@@ -1,3 +1,10 @@
 .terraform/*
 terraform.tfstate
 terraform.tfstate.backup
+.terraform/plugins/linux_amd64/terraform-provider-aws_v2.70.0_x4
+spboot-mysl/.classpath
+spboot-mysl/.project
+spboot-mysl/.settings/org.eclipse.core.resources.prefs
+spboot-mysl/.settings/org.eclipse.jdt.core.prefs
+spboot-mysl/.settings/org.eclipse.m2e.core.prefs
+spboot-mysl/.settings/org.springframework.ide.eclipse.prefs
