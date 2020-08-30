@@ -80,7 +80,7 @@ resource "aws_instance" "dev_pub_ami" {
   }
 
  provisioner "local-exec" {
-   command = "sed -i '6 s/^.*$/baseURL: \"http:\\/\\/${aws_instance.dev_pub_ami.public_ip}:8080\\/api\",/g' ./vue-spboot-mysl/frontend/src/http-common.js; cd ./vue-spboot-mysl/frontend/; rm -f ./dist.tar.xz; npm run build; tar cvJf dist.tar.xz dist"
+   command = "sed -i '6 s/^.*$/baseURL: \"http:\\/\\/${aws_instance.dev_pub_ami.public_ip}:8080\\/api\",/g' ./vue-spboot-mysl/frontend/src/http-common.js; cd ./vue-spboot-mysl/frontend/; rm -f ./dist.tar.xz dist;npm install; npm run build; tar cvJf dist.tar.xz dist"
    #baseURL: "http://localhost:8080/api", vue-spboot-mysl/frontend/src/http-common.js
  }
 
